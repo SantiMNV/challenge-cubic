@@ -46,13 +46,13 @@
 - [x] Add structured error responses and status codes.
 - [x] Smoke-test `/api/analyze` with 3 repos (critical checkpoint).
 
-## 7. Add Basic Storage and Retrieval
+## 7. Add Basic Storage and Retrieval (Deferred / Out of Scope for now)
 - [ ] Implement in-memory store for local/dev use.
 - [ ] Cache results by `{owner, repo, commitSha}`.
 - [ ] Persist extraction/pages/citations in memory.
 - [ ] Implement `GET /api/repo/:projectId` and `GET /api/page/:pageId`.
 
-## 8. Reliability Hardening
+## 8. Reliability Hardening (Deferred / Out of Scope for now)
 - [ ] Add retries for GitHub and LLM transient failures.
 - [ ] Add timeout protection per pipeline step.
 - [ ] Handle partial generation and return warnings.
@@ -67,9 +67,8 @@
 - [x] Render markdown content and styled citation links.
 
 ## 10. Optional Features
-- [ ] Implement optional `POST /api/qa` (answer from generated wiki context).
-- [ ] Add optional Q&A panel (`Sheet`) with streamed responses.
-- [ ] Implement optional Vercel KV store.
+- [x] Implement optional `POST /api/qa` (answer from generated wiki context).
+- [x] Add optional Q&A panel (`Sheet`) with streamed responses.
 
 ## 11. Optional Production Upgrade (DB)
 - [ ] Create Postgres schema (`projects`, `subsystems`, `wiki_pages`, `citations`, `analysis_runs`).

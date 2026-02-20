@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChatAssistant } from "@/components/chat-assistant";
 import { cn } from "@/lib/utils";
 
 interface Citation {
@@ -130,6 +131,24 @@ export function RepoAnalyzer() {
     if (!result || !selectedSubsystemId) return null;
     return result.wikiPages.find((page) => page.subsystemId === selectedSubsystemId) ?? null;
   }, [result, selectedSubsystemId]);
+
+  const chatContext = useMemo(() => {
+    if (!result) return undefined;
+
+    return {
+      repo: result.repo,
+      headSha: result.headSha,
+      productSummary: result.productSummary,
+      subsystems: result.subsystems.map((subsystem) => ({
+        name: subsystem.name,
+        description: subsystem.description,
+      })),
+      wikiPages: result.wikiPages.map((page) => ({
+        subsystemName: page.subsystemName,
+        markdown: page.markdown,
+      })),
+    };
+  }, [result]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -359,6 +378,8 @@ export function RepoAnalyzer() {
           </Card>
         </div>
       ) : null}
+
+      <ChatAssistant context={chatContext} />
     </div>
   );
 }
