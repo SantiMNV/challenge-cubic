@@ -9,6 +9,38 @@ interface SignalPathSelectionPromptInput {
   treePaths: string[];
 }
 
+interface EvidenceMappingPromptInput {
+  repoSlug: string;
+  subsystem: {
+    id: string;
+    name: string;
+    description: string;
+    userJourney: string;
+    relevantPaths: string[];
+    entryPoints: string[];
+  };
+  fileContexts: Array<{ path: string; excerpt: string; totalLines: number }>;
+}
+
+interface WikiDraftPromptInput {
+  repoSlug: string;
+  subsystem: {
+    id: string;
+    name: string;
+    description: string;
+    userJourney: string;
+    entryPoints: string[];
+    externalServices: string[];
+  };
+  evidence: Array<{
+    path: string;
+    startLine: number;
+    endLine: number;
+    rationale: string;
+    excerpt: string;
+  }>;
+}
+
 export const FORBIDDEN_SUBSYSTEM_NAMES = [
   "frontend",
   "backend",
@@ -61,5 +93,65 @@ export function buildSubsystemExtractionPrompt(input: SubsystemPromptInput): str
     pathList,
     "Signal files:",
     signalSection,
+  ].join("\n\n");
+}
+
+export function buildEvidenceMappingPrompt(input: EvidenceMappingPromptInput): string {
+  const fileBlock = input.fileContexts
+    .map((file) =>
+      [`### ${file.path} (totalLines: ${file.totalLines})`, file.excerpt].join("\n"),
+    )
+    .join("\n\n");
+
+  return [
+    `Repository: ${input.repoSlug}`,
+    `Subsystem ID: ${input.subsystem.id}`,
+    `Subsystem Name: ${input.subsystem.name}`,
+    `Description: ${input.subsystem.description}`,
+    `User Journey: ${input.subsystem.userJourney}`,
+    `Relevant Paths: ${input.subsystem.relevantPaths.join(", ") || "None provided"}`,
+    `Entry Points: ${input.subsystem.entryPoints.join(", ") || "None provided"}`,
+    "Task: select the strongest code evidence ranges for this subsystem.",
+    "Return evidence as path + line ranges found in the provided files.",
+    "Line numbers must match the numbered excerpts exactly.",
+    "Use score in [0,1] where higher means stronger evidence.",
+    "Return only JSON using the schema.",
+    "Files:",
+    fileBlock,
+  ].join("\n\n");
+}
+
+export function buildWikiDraftPrompt(input: WikiDraftPromptInput): string {
+  const evidenceBlock = input.evidence
+    .map((item, index) =>
+      [
+        `Evidence ${index + 1}: ${item.path}:${item.startLine}-${item.endLine}`,
+        `Rationale: ${item.rationale}`,
+        item.excerpt,
+      ].join("\n"),
+    )
+    .join("\n\n");
+
+  return [
+    `Repository: ${input.repoSlug}`,
+    `Subsystem ID: ${input.subsystem.id}`,
+    `Subsystem Name: ${input.subsystem.name}`,
+    `Description: ${input.subsystem.description}`,
+    `User Journey: ${input.subsystem.userJourney}`,
+    `Entry Points: ${input.subsystem.entryPoints.join(", ") || "None provided"}`,
+    `External Services: ${input.subsystem.externalServices.join(", ") || "None"}`,
+    "Write markdown with these required sections (exact headings):",
+    "## Overview",
+    "## How It Works",
+    "## User Flow",
+    "## Entry Points",
+    "## Data Models",
+    "## External Dependencies",
+    "## Gotchas",
+    "For technical claims, include citation markers exactly as [[cite:path:start-end]].",
+    "Only use paths and line ranges from provided evidence.",
+    "Do not output a citations array; only markdown.",
+    "Evidence:",
+    evidenceBlock,
   ].join("\n\n");
 }

@@ -1,7 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { z } from "zod";
 
-import { SubsystemListSchema, type SubsystemListOutput } from "@/lib/ai/schemas";
+import {
+  SubsystemListSchema,
+  WikiPageSchema,
+  type SubsystemListOutput,
+  type WikiPageOutput,
+} from "@/lib/ai/schemas";
 
 const CACHE_DIR = path.join(process.cwd(), ".cache", "analyze");
 
@@ -11,8 +17,18 @@ export interface AnalyzeCacheRecord {
   repo: string;
   headSha: string;
   createdAt: string;
-  result: SubsystemListOutput;
+  result: {
+    productSummary: SubsystemListOutput["productSummary"];
+    subsystems: SubsystemListOutput["subsystems"];
+    wikiPages: WikiPageOutput[];
+  };
 }
+
+const AnalyzeCacheResultSchema = z.object({
+  productSummary: SubsystemListSchema.shape.productSummary,
+  subsystems: SubsystemListSchema.shape.subsystems,
+  wikiPages: z.array(WikiPageSchema),
+});
 
 function toSafeSegment(input: string): string {
   return input.toLowerCase().replace(/[^a-z0-9._-]/g, "_");
@@ -34,7 +50,7 @@ export async function readAnalyzeCache(cacheKey: string): Promise<AnalyzeCacheRe
 
     return {
       ...parsed,
-      result: SubsystemListSchema.parse(parsed.result),
+      result: AnalyzeCacheResultSchema.parse(parsed.result),
     };
   } catch {
     return null;

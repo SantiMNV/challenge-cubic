@@ -23,6 +23,25 @@ export const SignalPathSelectionSchema = z.object({
   paths: z.array(z.string().trim().min(1)).min(1),
 });
 
+export const EvidenceRangeSchema = z
+  .object({
+    path: z.string().trim().min(1),
+    startLine: z.number().int().positive(),
+    endLine: z.number().int().positive(),
+    score: z.number().min(0).max(1),
+    rationale: z.string().trim().min(10),
+  })
+  .refine((evidence) => evidence.startLine <= evidence.endLine, {
+    message: "startLine must be less than or equal to endLine",
+    path: ["startLine"],
+  });
+
+export const SubsystemEvidenceSchema = z.object({
+  subsystemId: z.string().trim().min(1),
+  subsystemName: z.string().trim().min(1),
+  evidence: z.array(EvidenceRangeSchema).min(1).max(12),
+});
+
 export const CitationSchema = z
   .object({
     path: z.string().trim().min(1),
@@ -42,6 +61,12 @@ export const WikiPageSchema = z.object({
   citations: z.array(CitationSchema),
 });
 
+export const WikiDraftSchema = z.object({
+  markdown: z.string().trim().min(150),
+});
+
 export type SubsystemListOutput = z.infer<typeof SubsystemListSchema>;
 export type SignalPathSelectionOutput = z.infer<typeof SignalPathSelectionSchema>;
 export type WikiPageOutput = z.infer<typeof WikiPageSchema>;
+export type SubsystemEvidenceOutput = z.infer<typeof SubsystemEvidenceSchema>;
+export type EvidenceRangeOutput = z.infer<typeof EvidenceRangeSchema>;

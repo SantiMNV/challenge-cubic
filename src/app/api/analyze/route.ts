@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 
-import { extractSubsystems, selectSignalPathsWithAI } from "@/lib/ai/pipeline";
+import {
+  draftWikiPages,
+  extractSubsystems,
+  mapEvidenceForSubsystems,
+  selectEvidencePathsForSubsystems,
+  selectSignalPathsWithAI,
+} from "@/lib/ai/pipeline";
 import {
   createGitHubClient,
   getRepoFileTree,
@@ -75,6 +81,7 @@ export async function POST(request: Request) {
           createdAt: cached.createdAt,
           subsystems: cached.result.subsystems,
           productSummary: cached.result.productSummary,
+          wikiPages: cached.result.wikiPages,
         });
       }
     }
@@ -84,8 +91,6 @@ export async function POST(request: Request) {
       { owner: parsedRepo.owner, repo: parsedRepo.repo },
       repoHead.headSha,
     );
-
-    console.log("repoFiles", repoFiles);
 
     const treePaths = cleanTreePaths(repoFiles.map((file) => file.path));
     const signalSelection = await selectSignalPathsWithAI({
@@ -98,9 +103,6 @@ export async function POST(request: Request) {
       { ref: repoHead.headSha, paths: signalSelection.paths },
     );
 
-    // console.log("signalFiles", signalFiles);
-    console.log("signalPaths", signalSelection.paths);
-
     const extracted = await extractSubsystems({
       repoSlug: parsedRepo.slug,
       treePaths,
@@ -110,13 +112,49 @@ export async function POST(request: Request) {
       })),
     });
 
+    const selectedPathsBySubsystem = selectEvidencePathsForSubsystems({
+      subsystems: extracted.subsystems,
+      treePaths,
+    });
+
+    const evidencePaths = [...selectedPathsBySubsystem.values()]
+      .flat()
+      .map((entry) => entry.path);
+
+    const evidenceFiles = await getSelectedFileContents(
+      octokit,
+      { owner: parsedRepo.owner, repo: parsedRepo.repo },
+      { ref: repoHead.headSha, paths: evidencePaths },
+    );
+
+    const evidenceBySubsystem = await mapEvidenceForSubsystems({
+      repoSlug: parsedRepo.slug,
+      subsystems: extracted.subsystems,
+      files: evidenceFiles,
+      selectedPathsBySubsystem,
+    });
+
+    const wikiPages = await draftWikiPages({
+      repoSlug: parsedRepo.slug,
+      owner: parsedRepo.owner,
+      repo: parsedRepo.repo,
+      sha: repoHead.headSha,
+      subsystems: extracted.subsystems,
+      evidenceBySubsystem,
+      files: evidenceFiles,
+    });
+
     const cacheRecord = {
       cacheKey,
       owner: parsedRepo.owner,
       repo: parsedRepo.repo,
       headSha: repoHead.headSha,
       createdAt: new Date().toISOString(),
-      result: extracted,
+      result: {
+        productSummary: extracted.productSummary,
+        subsystems: extracted.subsystems,
+        wikiPages,
+      },
     };
     await writeAnalyzeCache(cacheRecord);
 
@@ -129,8 +167,10 @@ export async function POST(request: Request) {
       headSha: repoHead.headSha,
       createdAt: cacheRecord.createdAt,
       signalPaths: signalSelection.paths,
+      evidenceMappings: evidenceBySubsystem,
       subsystems: extracted.subsystems,
       productSummary: extracted.productSummary,
+      wikiPages,
     });
   } catch (error) {
     if (error instanceof AppError) {

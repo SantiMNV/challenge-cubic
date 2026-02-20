@@ -29,22 +29,22 @@
 - [x] Align structured output schema with Azure/OpenAI `response_format` JSON schema requirements (required properties, incl. `externalServices`).
 
 ## 4. Pipeline Step B - Evidence Mapping
-- [ ] Implement per-subsystem relevant file selection and scoring.
-- [ ] Add line-numbering before truncation utility.
-- [ ] Build context windows with token/file/line budgets.
-- [ ] Generate evidence mapping output (paths + line ranges).
-- [ ] Validate that every cited path and line range exists.
+- [x] Implement per-subsystem relevant file selection and scoring.
+- [x] Add line-numbering before truncation utility.
+- [x] Build context windows with token/file/line budgets.
+- [x] Generate evidence mapping output (paths + line ranges).
+- [x] Validate that every cited path and line range exists.
 
 ## 5. Pipeline Step C - Wiki Drafting
-- [ ] Create wiki generation prompt with required sections.
-- [ ] Generate one page per subsystem in parallel (`Promise.all`).
-- [ ] Enforce citation presence for technical claims.
-- [ ] Parse markdown citations into clickable SHA-based GitHub links.
+- [x] Create wiki generation prompt with required sections.
+- [x] Generate one page per subsystem in parallel (`Promise.all`).
+- [x] Enforce citation presence for technical claims.
+- [x] Parse markdown citations into clickable SHA-based GitHub links.
 
 ## 6. Expose Pipeline Through API
 - [x] Implement `POST /api/analyze` (Step A + local cache by `{owner, repo, commitSha}`).
 - [x] Add structured error responses and status codes.
-- [ ] Smoke-test `/api/analyze` with 3 repos (critical checkpoint).
+- [x] Smoke-test `/api/analyze` with 3 repos (critical checkpoint).
 
 ## 7. Add Basic Storage and Retrieval
 - [ ] Implement in-memory store for local/dev use.
