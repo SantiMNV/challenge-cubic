@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 
@@ -61,4 +61,102 @@ export async function writeAnalyzeCache(record: AnalyzeCacheRecord): Promise<voi
   await mkdir(CACHE_DIR, { recursive: true });
   const filePath = getCacheFilePath(record.cacheKey);
   await writeFile(filePath, JSON.stringify(record, null, 2), "utf8");
+}
+
+export async function readLatestAnalyzeCacheByRepo(params: {
+  owner: string;
+  repo: string;
+}): Promise<AnalyzeCacheRecord | null> {
+  const expectedOwner = toSafeSegment(params.owner);
+  const expectedRepo = toSafeSegment(params.repo);
+
+  let fileNames: string[];
+  try {
+    fileNames = await readdir(CACHE_DIR);
+  } catch {
+    return null;
+  }
+
+  const candidates = fileNames
+    .filter((fileName) => fileName.endsWith(".json"))
+    .filter((fileName) => {
+      const [ownerSegment, repoSegment] = fileName.replace(/\.json$/i, "").split("__");
+      return ownerSegment === expectedOwner && repoSegment === expectedRepo;
+    });
+
+  if (!candidates.length) {
+    return null;
+  }
+
+  const parsedRecords = await Promise.all(
+    candidates.map(async (fileName) => {
+      try {
+        const raw = await readFile(path.join(CACHE_DIR, fileName), "utf8");
+        const parsed = JSON.parse(raw) as AnalyzeCacheRecord;
+        return {
+          ...parsed,
+          result: AnalyzeCacheResultSchema.parse(parsed.result),
+        };
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  const validRecords = parsedRecords.filter((record): record is AnalyzeCacheRecord => record !== null);
+  if (!validRecords.length) {
+    return null;
+  }
+
+  validRecords.sort((a, b) => {
+    const first = Date.parse(a.createdAt);
+    const second = Date.parse(b.createdAt);
+    return second - first;
+  });
+
+  return validRecords[0] ?? null;
+}
+
+export async function listLatestAnalyzeCaches(limit: number): Promise<AnalyzeCacheRecord[]> {
+  let fileNames: string[];
+  try {
+    fileNames = await readdir(CACHE_DIR);
+  } catch {
+    return [];
+  }
+
+  const parsedRecords = await Promise.all(
+    fileNames
+      .filter((fileName) => fileName.endsWith(".json"))
+      .map(async (fileName) => {
+        try {
+          const raw = await readFile(path.join(CACHE_DIR, fileName), "utf8");
+          const parsed = JSON.parse(raw) as AnalyzeCacheRecord;
+          return {
+            ...parsed,
+            result: AnalyzeCacheResultSchema.parse(parsed.result),
+          };
+        } catch {
+          return null;
+        }
+      }),
+  );
+
+  const validRecords = parsedRecords.filter((record): record is AnalyzeCacheRecord => record !== null);
+
+  validRecords.sort((a, b) => {
+    const first = Date.parse(a.createdAt);
+    const second = Date.parse(b.createdAt);
+    return second - first;
+  });
+
+  const uniqueByRepo = new Map<string, AnalyzeCacheRecord>();
+  for (const record of validRecords) {
+    const key = `${record.owner.toLowerCase()}::${record.repo.toLowerCase()}`;
+    if (!uniqueByRepo.has(key)) {
+      uniqueByRepo.set(key, record);
+    }
+  }
+
+  return Array.from(uniqueByRepo.values()).slice(0, Math.max(0, limit));
 }

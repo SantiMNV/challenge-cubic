@@ -1,52 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, ExternalLink, Loader2, Search } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
+import { RepoWikiView } from "@/components/repo-wiki-view";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChatAssistant } from "@/components/chat-assistant";
-import { cn } from "@/lib/utils";
-
-interface Citation {
-  path: string;
-  startLine: number;
-  endLine: number;
-  url: string;
-}
-
-interface WikiPage {
-  subsystemId: string;
-  subsystemName: string;
-  markdown: string;
-  citations: Citation[];
-}
-
-interface Subsystem {
-  id: string;
-  name: string;
-  description: string;
-}
-
-interface AnalyzeResult {
-  status: string;
-  source: "cache" | "fresh";
-  repo: string;
-  headSha: string;
-  productSummary: string;
-  subsystems: Subsystem[];
-  wikiPages: WikiPage[];
-}
+import type { AnalyzeResult } from "@/lib/analyze/types";
 
 const stages = ["Fetching", "Analyzing", "Writing", "Ready"] as const;
 
 type AnalyzeStage = (typeof stages)[number] | "Idle" | "Error";
+
+interface RecentCachedItem {
+  owner: string;
+  repo: string;
+  headSha: string;
+  createdAt: string;
+}
 
 function isValidGitHubUrl(value: string): boolean {
   try {
@@ -97,58 +72,28 @@ function LoadingWikiShell() {
 
 export function RepoAnalyzer() {
   const [repoUrl, setRepoUrl] = useState("");
-  const [query, setQuery] = useState("");
   const [stage, setStage] = useState<AnalyzeStage>("Idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResult | null>(null);
-  const [selectedSubsystemId, setSelectedSubsystemId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!result?.subsystems.length) return;
-
-    setSelectedSubsystemId((current) => {
-      if (!current || !result.subsystems.some((subsystem) => subsystem.id === current)) {
-        return result.subsystems[0]?.id ?? null;
-      }
-      return current;
-    });
-  }, [result]);
+  const [latestCached, setLatestCached] = useState<RecentCachedItem[]>([]);
 
   const isLoading = stage !== "Idle" && stage !== "Ready" && stage !== "Error";
 
-  const filteredSubsystems = useMemo(() => {
-    if (!result) return [];
+  useEffect(() => {
+    async function loadRecentCaches() {
+      try {
+        const response = await fetch("/api/analyze/recent");
+        if (!response.ok) return;
 
-    if (!query.trim()) return result.subsystems;
+        const data = (await response.json()) as { items?: RecentCachedItem[] };
+        setLatestCached(Array.isArray(data.items) ? data.items.slice(0, 3) : []);
+      } catch {
+        setLatestCached([]);
+      }
+    }
 
-    const needle = query.trim().toLowerCase();
-    return result.subsystems.filter((subsystem) => {
-      return subsystem.name.toLowerCase().includes(needle) || subsystem.description.toLowerCase().includes(needle);
-    });
-  }, [query, result]);
-
-  const selectedPage = useMemo(() => {
-    if (!result || !selectedSubsystemId) return null;
-    return result.wikiPages.find((page) => page.subsystemId === selectedSubsystemId) ?? null;
-  }, [result, selectedSubsystemId]);
-
-  const chatContext = useMemo(() => {
-    if (!result) return undefined;
-
-    return {
-      repo: result.repo,
-      headSha: result.headSha,
-      productSummary: result.productSummary,
-      subsystems: result.subsystems.map((subsystem) => ({
-        name: subsystem.name,
-        description: subsystem.description,
-      })),
-      wikiPages: result.wikiPages.map((page) => ({
-        subsystemName: page.subsystemName,
-        markdown: page.markdown,
-      })),
-    };
-  }, [result]);
+    void loadRecentCaches();
+  }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -162,7 +107,6 @@ export function RepoAnalyzer() {
 
     setStage("Fetching");
     setResult(null);
-    setSelectedSubsystemId(null);
 
     const timer = window.setInterval(() => {
       setStage((current) => {
@@ -218,25 +162,48 @@ export function RepoAnalyzer() {
             </Button>
           </form>
 
-          <div className="grid gap-2 sm:grid-cols-4">
-            {stages.map((item) => {
-              const currentIndex = stages.indexOf(stage as (typeof stages)[number]);
-              const itemIndex = stages.indexOf(item);
-              const complete = currentIndex > -1 && itemIndex <= currentIndex;
-
-              return (
+          {isLoading ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground text-xs font-medium">
+                  {stage === "Fetching" && "Fetching repository"}
+                  {stage === "Analyzing" && "Analyzing codebase"}
+                  {stage === "Writing" && "Writing wiki"}
+                </span>
+                <span className="text-muted-foreground/80 text-xs">May take up to 2 minutes</span>
+              </div>
+              <div className="bg-muted/50 h-1.5 w-full overflow-hidden rounded-full">
                 <div
-                  key={item}
-                  className={cn(
-                    "rounded-md border px-3 py-2 text-xs font-medium",
-                    complete ? "border-primary/50 bg-primary/10 text-primary" : "text-muted-foreground",
-                  )}
-                >
-                  {item}
-                </div>
-              );
-            })}
-          </div>
+                  className="bg-primary h-full rounded-full transition-all duration-500 ease-out"
+                  style={{
+                    width: `${
+                      stage === "Fetching" ? 33 : stage === "Analyzing" ? 66 : stage === "Writing" ? 100 : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {latestCached.length ? (
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-xs font-semibold uppercase tracking-[0.14em]">Latest generations</p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {latestCached.map((item) => (
+                  <Link
+                    key={`${item.owner}/${item.repo}`}
+                    href={`/${item.owner}/${item.repo}`}
+                    className="hover:border-primary/60 hover:bg-accent rounded-md border border-border/70 bg-background px-3 py-2 text-sm transition-colors"
+                  >
+                    <div className="font-semibold text-foreground">
+                      {item.owner}/{item.repo}
+                    </div>
+                    <div className="text-muted-foreground mt-1 text-xs">SHA {item.headSha.slice(0, 10)}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {error ? (
             <div className="text-destructive flex items-start gap-2 rounded-md border border-red-300/60 bg-red-50 p-3 text-sm">
@@ -256,130 +223,7 @@ export function RepoAnalyzer() {
       </Card>
 
       {isLoading ? <LoadingWikiShell /> : null}
-
-      {result ? (
-        <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <Card className="p-0 lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
-            <CardHeader className="gap-3 px-4 pb-2 pt-4">
-              <CardTitle className="font-serif text-lg">Subsystems</CardTitle>
-              <div className="relative">
-                <Search className="text-muted-foreground pointer-events-none absolute left-2 top-2.5 size-4" />
-                <Input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  className="pl-8"
-                  placeholder="Search subsystem"
-                />
-              </div>
-            </CardHeader>
-            <Separator />
-            <ScrollArea className="p-3 lg:h-[calc(100vh-9rem)]">
-              <div className="space-y-2">
-                {filteredSubsystems.map((subsystem) => {
-                  const isActive = subsystem.id === selectedSubsystemId;
-
-                  return (
-                    <button
-                      type="button"
-                      key={subsystem.id}
-                      onClick={() => setSelectedSubsystemId(subsystem.id)}
-                      className={cn(
-                        "w-full rounded-md border px-3 py-2 text-left transition-colors",
-                        isActive
-                          ? "border-primary bg-primary/10"
-                          : "border-border/70 bg-background hover:border-primary/60 hover:bg-accent",
-                      )}
-                    >
-                      <div className="line-clamp-1 text-sm font-semibold">{subsystem.name}</div>
-                      <div className="text-muted-foreground mt-1 line-clamp-2 text-xs">{subsystem.description}</div>
-                    </button>
-                  );
-                })}
-                {!filteredSubsystems.length ? (
-                  <p className="text-muted-foreground text-sm">No subsystem matches your search.</p>
-                ) : null}
-              </div>
-            </ScrollArea>
-          </Card>
-
-          <Card className="min-h-[70vh] p-0">
-            <CardHeader className="gap-2 px-6 pt-6">
-              <CardTitle className="font-serif text-2xl">
-                {selectedPage?.subsystemName ?? "Select a subsystem"}
-              </CardTitle>
-              <CardDescription>{result.productSummary}</CardDescription>
-            </CardHeader>
-            <Separator />
-            <div className="px-6 pb-6">
-              {selectedPage ? (
-                <div className="space-y-6 py-6">
-                  <article className="max-w-none space-y-4 text-sm leading-7 text-slate-700">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        h1: ({ children }) => <h1 className="font-serif mt-2 text-3xl text-slate-900">{children}</h1>,
-                        h2: ({ children }) => (
-                          <h2 className="font-serif mt-8 border-b border-slate-200 pb-2 text-2xl text-slate-900">{children}</h2>
-                        ),
-                        h3: ({ children }) => <h3 className="font-serif mt-6 text-xl text-slate-900">{children}</h3>,
-                        p: ({ children }) => <p className="text-sm leading-7 text-slate-700">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc space-y-1 pl-6">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal space-y-1 pl-6">{children}</ol>,
-                        code: ({ children }) => (
-                          <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-800">{children}</code>
-                        ),
-                        a: ({ href, children }) => (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-primary inline-flex items-center gap-1 underline underline-offset-2"
-                          >
-                            {children}
-                            <ExternalLink className="size-3" />
-                          </a>
-                        ),
-                      }}
-                    >
-                      {selectedPage.markdown}
-                    </ReactMarkdown>
-                  </article>
-
-                  <Separator />
-
-                  <section className="space-y-3">
-                    <h3 className="font-serif text-lg text-slate-900">Citations</h3>
-                    {selectedPage.citations.length ? (
-                      <div className="space-y-2">
-                        {selectedPage.citations.map((citation) => (
-                          <a
-                            href={citation.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            key={`${citation.path}-${citation.startLine}-${citation.endLine}`}
-                            className="group flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm transition-colors hover:border-slate-400"
-                          >
-                            <span className="line-clamp-1 text-slate-800">
-                              {citation.path} (L{citation.startLine}-L{citation.endLine})
-                            </span>
-                            <ExternalLink className="size-3 shrink-0 text-slate-500 transition-transform group-hover:translate-x-0.5" />
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">No citations were returned for this page.</p>
-                    )}
-                  </section>
-                </div>
-              ) : (
-                <p className="text-muted-foreground py-6 text-sm">Select a subsystem to view generated documentation.</p>
-              )}
-            </div>
-          </Card>
-        </div>
-      ) : null}
-
-      <ChatAssistant context={chatContext} />
+      {result ? <RepoWikiView result={result} /> : null}
     </div>
   );
 }
