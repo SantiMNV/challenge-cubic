@@ -1,0 +1,48 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+
+import { SubsystemListSchema, type SubsystemListOutput } from "@/lib/ai/schemas";
+
+const CACHE_DIR = path.join(process.cwd(), ".cache", "analyze");
+
+export interface AnalyzeCacheRecord {
+  cacheKey: string;
+  owner: string;
+  repo: string;
+  headSha: string;
+  createdAt: string;
+  result: SubsystemListOutput;
+}
+
+function toSafeSegment(input: string): string {
+  return input.toLowerCase().replace(/[^a-z0-9._-]/g, "_");
+}
+
+export function buildAnalyzeCacheKey(params: { owner: string; repo: string; headSha: string }): string {
+  return `${toSafeSegment(params.owner)}__${toSafeSegment(params.repo)}__${toSafeSegment(params.headSha)}`;
+}
+
+function getCacheFilePath(cacheKey: string): string {
+  return path.join(CACHE_DIR, `${cacheKey}.json`);
+}
+
+export async function readAnalyzeCache(cacheKey: string): Promise<AnalyzeCacheRecord | null> {
+  try {
+    const filePath = getCacheFilePath(cacheKey);
+    const raw = await readFile(filePath, "utf8");
+    const parsed = JSON.parse(raw) as AnalyzeCacheRecord;
+
+    return {
+      ...parsed,
+      result: SubsystemListSchema.parse(parsed.result),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function writeAnalyzeCache(record: AnalyzeCacheRecord): Promise<void> {
+  await mkdir(CACHE_DIR, { recursive: true });
+  const filePath = getCacheFilePath(record.cacheKey);
+  await writeFile(filePath, JSON.stringify(record, null, 2), "utf8");
+}
