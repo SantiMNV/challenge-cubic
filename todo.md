@@ -60,11 +60,11 @@
 - [ ] Ensure no secrets are exposed to client-side code.
 
 ## 9. UI Layer (after backend is proven)
-- [ ] Install UI dependencies: `tailwindcss`, `shadcn/ui`, `react-markdown`, `remark-gfm`.
-- [ ] Build landing page with repo URL form and validation errors.
-- [ ] Build loading/progress state (`Fetching -> Analyzing -> Writing -> Ready`).
-- [ ] Build wiki shell layout with sidebar + main content.
-- [ ] Render markdown content and styled citation links.
+- [x] Install UI dependencies: `tailwindcss`, `shadcn/ui`, `react-markdown`, `remark-gfm`.
+- [x] Build landing page with repo URL form and validation errors.
+- [x] Build loading/progress state (`Fetching -> Analyzing -> Writing -> Ready`).
+- [x] Build wiki shell layout with sidebar + main content.
+- [x] Render markdown content and styled citation links.
 
 ## 10. Optional Features
 - [ ] Implement optional `POST /api/qa` (answer from generated wiki context).

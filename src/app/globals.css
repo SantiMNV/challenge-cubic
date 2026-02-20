@@ -1,42 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: 40 30% 98%;
+  --foreground: 220 18% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 18% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 18% 11%;
+  --primary: 16 85% 46%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 40 18% 93%;
+  --secondary-foreground: 220 18% 16%;
+  --muted: 40 14% 92%;
+  --muted-foreground: 215 10% 40%;
+  --accent: 26 100% 95%;
+  --accent-foreground: 220 18% 13%;
+  --destructive: 0 72% 48%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 32 16% 82%;
+  --input: 33 18% 84%;
+  --ring: 16 85% 46%;
+  --radius: 0.75rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  @apply border-border;
 }
 
 html,
 body {
-  max-width: 100vw;
-  overflow-x: hidden;
+  min-height: 100%;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  @apply bg-background text-foreground;
+  background-image:
+    radial-gradient(circle at 5% 0%, rgba(242, 165, 89, 0.18), transparent 44%),
+    radial-gradient(circle at 95% 4%, rgba(217, 112, 61, 0.14), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.9));
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+.font-serif {
+  font-family: var(--font-serif), Georgia, serif;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+.font-sans {
+  font-family: var(--font-sans), "Segoe UI", sans-serif;
 }

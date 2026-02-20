@@ -7,6 +7,7 @@ import { logger } from "@/lib/utils/logger";
 
 const MAX_FILE_BYTES = 150_000;
 const DEFAULT_MAX_RETRIES = 3;
+const DEFAULT_FETCH_CONCURRENCY = 8;
 
 export interface RepoIdentity {
   owner: string;
@@ -120,22 +121,20 @@ export async function getSelectedFileContents(
     ref: string;
     paths: string[];
     maxRetries?: number;
+    concurrency?: number;
   },
 ): Promise<RepoFileContent[]> {
   const maxRetries = params.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const concurrency = Math.max(1, Math.min(params.concurrency ?? DEFAULT_FETCH_CONCURRENCY, 20));
   const uniquePaths = [...new Set(params.paths)].filter(shouldIncludePath);
-  const collected: RepoFileContent[] = [];
+  const collected: Array<RepoFileContent | null> = new Array(uniquePaths.length).fill(null);
 
-  for (const path of uniquePaths) {
+  async function fetchPathWithRetry(path: string): Promise<RepoFileContent | null> {
     let attempt = 0;
 
     while (attempt <= maxRetries) {
       try {
-        const file = await fetchSingleFile(octokit, identity, { path, ref: params.ref });
-        if (file) {
-          collected.push(file);
-        }
-        break;
+        return await fetchSingleFile(octokit, identity, { path, ref: params.ref });
       } catch (error) {
         attempt += 1;
 
@@ -158,9 +157,25 @@ export async function getSelectedFileContents(
         await sleep(backoffMs);
       }
     }
+
+    return null;
   }
 
-  return collected;
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(concurrency, uniquePaths.length) }, async () => {
+    while (true) {
+      const index = cursor;
+      cursor += 1;
+      if (index >= uniquePaths.length) {
+        break;
+      }
+
+      collected[index] = await fetchPathWithRetry(uniquePaths[index]);
+    }
+  });
+
+  await Promise.all(workers);
+  return collected.filter((file): file is RepoFileContent => Boolean(file));
 }
 
 export function buildCitationPermalink(
