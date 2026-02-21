@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { listLatestAnalyzeCaches } from "@/lib/store/memory";
+import { listLatestAnalyzeCaches } from "@/lib/store";
 
 const MAX_ITEMS = 3;
 

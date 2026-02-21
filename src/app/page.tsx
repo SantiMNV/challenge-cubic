@@ -1,6 +1,17 @@
 import { RepoAnalyzer } from "@/components/repo-analyzer";
+import { listLatestAnalyzeCaches } from "@/lib/store";
 
-export default function Home() {
+const MAX_ITEMS = 3;
+
+export default async function Home() {
+  let latestCached: Array<{ owner: string; repo: string; headSha: string; createdAt: string }> = [];
+
+  try {
+    latestCached = await listLatestAnalyzeCaches(MAX_ITEMS);
+  } catch {
+    latestCached = [];
+  }
+
   return (
     <main className="w-full px-4 py-8 md:px-8 md:py-12">
       <section className="mb-8 space-y-3">
@@ -11,7 +22,7 @@ export default function Home() {
         </p>
       </section>
 
-      <RepoAnalyzer />
+      <RepoAnalyzer initialLatestCached={latestCached} />
     </main>
   );
 }

@@ -19,7 +19,7 @@ import {
   buildAnalyzeCacheKey,
   readAnalyzeCache,
   writeAnalyzeCache,
-} from "@/lib/store/memory";
+} from "@/lib/store";
 import { AppError } from "@/lib/utils/errors";
 import { logger } from "@/lib/utils/logger";
 import { parseGitHubRepoUrl } from "@/lib/utils/repo-url";

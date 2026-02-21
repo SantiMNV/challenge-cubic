@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { Loader2, MessageCircle, Send, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {
@@ -126,30 +125,32 @@ export function ChatAssistant({ context }: ChatAssistantProps) {
   return (
     <>
       {isOpen ? (
-        <section className="fixed bottom-24 right-4 z-50 h-[min(72vh,620px)] w-[min(440px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-[0_24px_80px_-28px_rgba(15,23,42,0.45)] backdrop-blur">
-          <header className="flex items-center justify-between border-b border-slate-200/80 bg-gradient-to-r from-orange-50 to-amber-50 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm">
-                <Sparkles className="size-4" />
-              </span>
-              <div>
-                <p className="font-serif text-base text-slate-900">Repo Assistant</p>
-                <p className="text-xs text-slate-500">{context?.repo ?? "No repo analyzed yet"}</p>
+        <section className="fixed bottom-24 right-4 z-50 flex h-[min(72dvh,620px)] w-[min(440px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-[0_24px_80px_-28px_rgba(15,23,42,0.45)] backdrop-blur">
+          <header className="shrink-0 border-b border-slate-200/80 bg-gradient-to-r from-orange-50 to-amber-50 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex size-7 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm">
+                  <Sparkles className="size-4" />
+                </span>
+                <div>
+                  <p className="font-serif text-base text-slate-900">Repo Assistant</p>
+                  <p className="text-xs text-slate-500">{context?.repo ?? "No repo analyzed yet"}</p>
+                </div>
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsOpen(false)}
+                aria-label="Close chat"
+                className="size-8 rounded-full"
+              >
+                <X className="size-4" />
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsOpen(false)}
-              aria-label="Close chat"
-              className="size-8 rounded-full"
-            >
-              <X className="size-4" />
-            </Button>
           </header>
-          <div className="flex h-[calc(100%-4rem)] flex-col gap-3 p-3">
-            <ScrollArea className="h-full rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-3">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-3">
               <div className="space-y-4 pb-1">
                 {!messages.length ? (
                   <div className="rounded-lg border border-dashed border-slate-300 bg-white/80 px-3 py-2 text-sm text-slate-500">
@@ -161,7 +162,7 @@ export function ChatAssistant({ context }: ChatAssistantProps) {
                   <div
                     key={message.id}
                     className={cn(
-                      "max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-6 shadow-sm",
+                      "max-w-[88%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm leading-6 shadow-sm",
                       message.role === "user"
                         ? "ml-auto rounded-br-md bg-slate-900 text-slate-50"
                         : "rounded-bl-md border border-slate-200 bg-white text-slate-700",
@@ -172,7 +173,7 @@ export function ChatAssistant({ context }: ChatAssistantProps) {
                 ))}
                 <div ref={endRef} />
               </div>
-            </ScrollArea>
+            </div>
 
             <form onSubmit={onSubmit} className="space-y-2 rounded-xl border border-slate-200 bg-white p-2">
               <textarea

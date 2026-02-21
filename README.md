@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cubic Wiki Generator
 
-## Getting Started
+Generate feature-driven subsystem wiki pages for public GitHub repos, with line-level citations and optional Q&A.
 
-First, run the development server:
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Minimum required:
 
-## Learn More
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL` (defaults to `openai/gpt-5-mini` if omitted in some paths)
+- `OPENAI_BASE_URL` (optional, if using a provider gateway)
+- `GITHUB_TOKEN` (optional but strongly recommended for higher rate limits)
 
-To learn more about Next.js, take a look at the following resources:
+Cache backend (required, Upstash Redis):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Upstash Redis cache integration
 
-## Deploy on Vercel
+This project supports Redis-backed analysis cache via `@upstash/redis`:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Cache key: `{owner}__{repo}__{headSha}`
+- Record: full analysis payload (`productSummary`, `subsystems`, `wikiPages`)
+- Extra indices:
+  - latest cache per repo
+  - recent repos list for homepage
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### How to enable Upstash
+
+1. In Vercel, add an Upstash Redis integration to your project.
+2. Pull env vars locally:
+
+```bash
+vercel env pull .env.local
+```
+
+3. Restart dev server.
+
+
+### How to use it in this app
+
+- `POST /api/analyze`:
+  - Reads by `{owner, repo, headSha}` first.
+  - On miss, runs full pipeline and stores result in Upstash.
+- `GET /api/analyze/:owner/:repo`:
+  - Reads latest cached analysis for that repo.
+- `GET /api/analyze/recent`:
+  - Lists latest cached repos.
+
+## Deploy
+
+Deploy on Vercel and set env vars in Project Settings -> Environment Variables.

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { readLatestAnalyzeCacheByRepo } from "@/lib/store/memory";
+import { readLatestAnalyzeCacheByRepo } from "@/lib/store";
 
 interface RouteContext {
   params: Promise<{

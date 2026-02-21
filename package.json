@@ -12,6 +12,7 @@
     "@ai-sdk/openai": "^3.0.30",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-separator": "^1.1.8",
+    "@upstash/redis": "^1.36.2",
     "ai": "^6.0.95",
     "autoprefixer": "^10.4.24",
     "class-variance-authority": "^0.7.1",

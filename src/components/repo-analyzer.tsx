@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 import { RepoWikiView } from "@/components/repo-wiki-view";
@@ -12,15 +12,17 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AnalyzeResult } from "@/lib/analyze/types";
 
-const stages = ["Fetching", "Analyzing", "Writing", "Ready"] as const;
-
-type AnalyzeStage = (typeof stages)[number] | "Idle" | "Error";
+type AnalyzeStage = "Fetching" | "Analyzing" | "Writing" | "Ready" | "Idle" | "Error";
 
 interface RecentCachedItem {
   owner: string;
   repo: string;
   headSha: string;
   createdAt: string;
+}
+
+interface RepoAnalyzerProps {
+  initialLatestCached?: RecentCachedItem[];
 }
 
 function isValidGitHubUrl(value: string): boolean {
@@ -70,30 +72,14 @@ function LoadingWikiShell() {
   );
 }
 
-export function RepoAnalyzer() {
+export function RepoAnalyzer({ initialLatestCached = [] }: RepoAnalyzerProps) {
   const [repoUrl, setRepoUrl] = useState("");
   const [stage, setStage] = useState<AnalyzeStage>("Idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResult | null>(null);
-  const [latestCached, setLatestCached] = useState<RecentCachedItem[]>([]);
+  const latestCached = initialLatestCached;
 
   const isLoading = stage !== "Idle" && stage !== "Ready" && stage !== "Error";
-
-  useEffect(() => {
-    async function loadRecentCaches() {
-      try {
-        const response = await fetch("/api/analyze/recent");
-        if (!response.ok) return;
-
-        const data = (await response.json()) as { items?: RecentCachedItem[] };
-        setLatestCached(Array.isArray(data.items) ? data.items.slice(0, 3) : []);
-      } catch {
-        setLatestCached([]);
-      }
-    }
-
-    void loadRecentCaches();
-  }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

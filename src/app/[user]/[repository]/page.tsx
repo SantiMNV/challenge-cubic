@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { RepoWikiView } from "@/components/repo-wiki-view";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { readLatestAnalyzeCacheByRepo } from "@/lib/store/memory";
+import { readLatestAnalyzeCacheByRepo } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 interface RouteParams {
@@ -47,7 +47,7 @@ export default async function RepositoryPage({ params }: RouteParams) {
         <h1 className="font-serif text-4xl tracking-tight text-slate-900 md:text-5xl">{user}/{repository}</h1>
         {cached ? (
           <p className="text-sm text-muted-foreground">
-            Loaded from local cache ({formatTimestamp(cached.createdAt)}), SHA {cached.headSha.slice(0, 12)}.
+            Loaded from cache ({formatTimestamp(cached.createdAt)}), SHA {cached.headSha.slice(0, 12)}.
           </p>
         ) : null}
       </section>
