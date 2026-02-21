@@ -1,4 +1,4 @@
-import { generateObject } from "ai";
+import { generateText, Output } from "ai";
 
 import {
   buildEvidenceMappingPrompt,
@@ -184,14 +184,14 @@ export async function extractSubsystems(params: {
     signalFiles: params.signalFiles,
   });
 
-  const result = await generateObject({
+  const result = await generateText({
     model: openai(OPENAI_MODEL),
-    schema: SubsystemListSchema,
+    output: Output.object({ schema: SubsystemListSchema }),
     prompt,
     temperature: 0.2,
   });
 
-  const parsed = result.object;
+  const parsed = result.output;
   if (hasInvalidSubsystemNames(parsed)) {
     throw new AppError("Model produced invalid subsystem names", {
       code: "INVALID_SUBSYSTEM_NAMES",
@@ -221,15 +221,15 @@ export async function selectSignalPathsWithAI(params: {
     treePaths: params.treePaths,
   });
 
-  const result = await generateObject({
+  const result = await generateText({
     model: openai(OPENAI_MODEL),
-    schema: SignalPathSelectionSchema,
+    output: Output.object({ schema: SignalPathSelectionSchema }),
     prompt,
     temperature: 0.1,
   });
 
   const available = new Set(params.treePaths);
-  const deduped = [...new Set(result.object.paths)].filter((path) => available.has(path));
+  const deduped = [...new Set(result.output.paths)].filter((path) => available.has(path));
 
   if (deduped.length === 0) {
     throw new AppError("Model did not return usable signal paths", {
@@ -304,14 +304,14 @@ export async function mapEvidenceForSubsystems(params: {
         fileContexts,
       });
 
-      const result = await generateObject({
+      const result = await generateText({
         model: openai(OPENAI_MODEL),
-        schema: SubsystemEvidenceSchema,
+        output: Output.object({ schema: SubsystemEvidenceSchema }),
         prompt,
         temperature: 0.1,
       });
 
-      const validated = result.object.evidence
+      const validated = result.output.evidence
         .filter((item) => selectedPaths.includes(item.path))
         .filter((item) => {
           const maxLines = lineCounts.get(item.path);
@@ -381,15 +381,15 @@ export async function draftWikiPages(params: {
         evidence: evidenceWithExcerpts,
       });
 
-      const result = await generateObject({
+      const result = await generateText({
         model: openai(OPENAI_MODEL),
-        schema: WikiDraftSchema,
+        output: Output.object({ schema: WikiDraftSchema }),
         prompt,
         temperature: 0.2,
       });
 
       const parsedCitations = parseAndLinkCitations({
-        markdown: result.object.markdown,
+        markdown: result.output.markdown,
         owner: params.owner,
         repo: params.repo,
         sha: params.sha,
