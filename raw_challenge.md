@@ -80,7 +80,7 @@ We score holistically across five dimensions.  We will of course take into accou
 
 ## **6. Submission checklist**
 
-1. **Email Paul** at paul@cubic.dev (subject: [cubic Coding Challenge] <Your Name>).
+1. **Email xxx** at xxx@cubic.dev (subject: [xxx] <Your Name>).
 2. Include:
     - A **GitHub link** to your code (public repo or add us as collaborators).
     - A **live demo URL**.
@@ -95,7 +95,7 @@ We score holistically across five dimensions.  We will of course take into accou
 
 ## **7. Tips for success**
 
-- Feel free to ask clarifying questions—ping Paul on email anytime with questions!
+- Feel free to ask clarifying questions—ping xxx on email anytime with questions!
 
 ---
 
