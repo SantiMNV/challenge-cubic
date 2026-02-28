@@ -1,5 +1,14 @@
 # Cubic Wiki Generator
 
+![Home](assets/screenshots/home.png)
+![Detail](assets/screenshots/detail.png)
+![Chat](assets/screenshots/chat.png)
+
+## Challenge Context
+
+This project was built as a technical challenge for `cubic.dev`.
+The goal was to design and ship a working repository wiki generator with cited, feature-oriented documentation and a grounded chat assistant in under 5 hours.
+
 Generate feature-driven wiki pages for public GitHub repositories with line-level citations and an optional chat assistant.
 
 ## What This App Does
@@ -18,6 +27,7 @@ Generate feature-driven wiki pages for public GitHub repositories with line-leve
 Implemented in `/src/app/api/analyze/route.ts`.
 
 Flow:
+
 - Parse and validate input (`repoUrl`, optional `forceRefresh`).
 - Resolve `owner/repo` and fetch repo head SHA.
 - Check cache by `{owner, repo, headSha}`.
@@ -44,12 +54,14 @@ Implemented in `/src/lib/ai/pipeline.ts`.
 ### 3) GitHub Ingestion + Citations
 
 Relevant files:
+
 - `/src/lib/github/client.ts`
 - `/src/lib/github/filters.ts`
 - `/src/lib/citations/parser.ts`
 - `/src/lib/citations/permalink.ts`
 
 Behavior:
+
 - Fetches repo head and recursive tree.
 - Filters non-useful paths.
 - Fetches selected file contents with bounds.
@@ -58,28 +70,33 @@ Behavior:
 ### 4) Storage and Retrieval
 
 Relevant files:
+
 - `/src/lib/store/index.ts`
 - `/src/lib/store/kv.ts`
 
 Current storage:
+
 - Upstash Redis (required in current implementation).
 - Records full analysis payload and indexes:
 - latest result per repo.
 - recent analyzed repos list.
 
 Read APIs:
+
 - `GET /api/analyze/[user]/[repository]`
 - `GET /api/analyze/recent`
 
 ### 5) UI
 
 Relevant files:
+
 - `/src/app/page.tsx`
 - `/src/components/repo-analyzer.tsx`
 - `/src/components/repo-wiki-view.tsx`
 - `/src/components/chat-assistant.tsx`
 
 Current UX:
+
 - Landing form with URL validation and progress stages.
 - Wiki sidebar + searchable subsystem list.
 - Markdown wiki rendering + citations list.
@@ -108,11 +125,13 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Environment Variables
 
 Required:
+
 - `OPENAI_API_KEY`
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
 
 Optional:
+
 - `OPENAI_MODEL` (default: `gpt-5-mini`)
 - `OPENAI_BASE_URL`
 - `GITHUB_TOKEN` (recommended for rate limits)
@@ -137,7 +156,6 @@ Optional:
 - Return stale cache immediately and refresh in background.
 - Cache intermediate stage artifacts, not only final payloads.
 - Avoiding LLM's creation of sha codes will also improve timing.
-
 
 ## Better Chat UI and QA Improvements
 
